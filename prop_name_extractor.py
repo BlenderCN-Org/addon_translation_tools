@@ -22,11 +22,41 @@ class BlenderPropInfo():
         return self.__str__()
 
 class BlenderPropExtractor(ast.NodeVisitor):
-    PROPS = [
-        "FloatProperty", "IntProperty", "StringProperty", "EnumProperty", "BoolProperty",
-        "FloatVectorProperty", "IntVectorProperty", "BoolVectorProperty", 
-        "CollectionProperty","PointerProperty"]
-    
+    TARGET_LIST = {
+        # prop
+        "IntProperty": {"keyword": "name", "index": 0},
+        "FloatProperty": {"keyword": "name", "index": 0},
+        "StringProperty": {"keyword": "name", "index": 0},
+        "EnumProperty": {"keyword": "name", "index": 0},
+        "BoolProperty": {"keyword": "name", "index": 0},
+        "IntVectorProperty": {"keyword": "name", "index": 0},
+        "FloatVectorProperty": {"keyword": "name", "index": 0},
+        "BoolVectorProperty": {"keyword": "name", "index": 0},
+        "CollectionProperty": {"keyword": "name", "index": 0},
+        "PointerProperty": {"keyword": "name", "index": 0},
+        "IntProperty": {"keyword": "description", "index": 1},
+        "FloatProperty": {"keyword": "description", "index": 1},
+        "StringProperty": {"keyword": "description", "index": 1},
+        "EnumProperty": {"keyword": "description", "index": 1},
+        "BoolProperty": {"keyword": "description", "index": 1},
+        "IntVectorProperty": {"keyword": "description", "index": 1},
+        "FloatVectorProperty": {"keyword": "description", "index": 1},        
+        "BoolVectorProperty": {"keyword": "description", "index": 1},
+        "CollectionProperty": {"keyword": "description", "index": 1},
+        "PointerProperty": {"keyword": "description", "index": 1},
+        # layout
+        "template_any_ID": {"keyword": "text", "index": 3},
+        "template_path_builder": {"keyword": "text", "index": 3},
+        "prop": {"keyword": "text", "index": 2},
+        "prop_menu_enum": {"keyword": "text", "index": 2},
+        "prop_enum": {"keyword": "text", "index": 3},
+        "prop_search": {"keyword": "text", "index": 4},
+        "operator": {"keyword": "text", "index": 1},
+        "operator_menu_enum": {"keyword": "text", "index": 2},
+        "label": {"keyword": "text", "index": 0},
+        "menu": {"keyword": "text", "index": 1},
+    }
+
     def __init__(self):
         super(BlenderPropExtractor, self).__init__()
         self.prop_list = []
@@ -49,24 +79,19 @@ class BlenderPropExtractor(ast.NodeVisitor):
             func_name = node.func.attr
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
-        if func_name and func_name in BlenderPropExtractor.PROPS:
-            detected = False
-            if len(node.args) > 0:
-                if isinstance(node.args[0], ast.Str):
-                    self.add_result(func_name, "name", node.args[0].s, node.lineno)
+        if func_name and func_name in BlenderPropExtractor.TARGET_LIST:
+            target = BlenderPropExtractor.TARGET_LIST[func_name]
+            if len(node.args) > target["index"]:
+                if isinstance(node.args[target["index"]], ast.Str):
+                    self.add_result(func_name, target["keyword"], node.args[target["index"]].s, node.lineno)
                 else:
-                    self.add_error(func_name, "name", ast.dump(node.args[0]), node.lineno)
+                    self.add_error(func_name, target["keyword"], ast.dump(node.args[target["index"]]), node.lineno)
             for keyword in node.keywords:
-                if keyword.arg == "name":
+                if keyword.arg == target["keyword"]:
                     if isinstance(keyword.value, ast.Str):
-                        self.add_result(func_name, "name", keyword.value.s, node.lineno)
+                        self.add_result(func_name, target["keyword"], keyword.value.s, node.lineno)
                     else:
-                        self.add_error(func_name, "name", ast.dump(keyword.value), node.lineno)
-                if keyword.arg == "description":
-                    if isinstance(keyword.value, ast.Str):
-                        self.add_result(func_name, "description", keyword.value.s, node.lineno)
-                    else:
-                        self.add_error(func_name, "description", ast.dump(keyword.value), node.lineno)
+                        self.add_error(func_name, target["keyword"], ast.dump(keyword.value), node.lineno)
 
 if __name__ == "__main__":
     print("\n-------------- begin prop_name_extractor.py --------------\n")
