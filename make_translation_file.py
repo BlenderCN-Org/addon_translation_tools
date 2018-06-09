@@ -112,9 +112,9 @@ if __name__ == "__main__":
     if args.output is None:
         basename = os.path.basename(args.input_dir)
         if basename:
-            args.output = "{}.{}.csv".format(basename, bpy.app.translations.locale)
+            args.output = "{}.{}.txt".format(basename, bpy.app.translations.locale)
         else:
-            args.output = "{}.{}.csv".format("addon_name", bpy.app.translations.locale)
+            args.output = "{}.{}.txt".format("addon_name", bpy.app.translations.locale)
 
     scripts = glob.iglob(os.path.join(args.input_dir, "**", "*.py"), recursive=True)
     

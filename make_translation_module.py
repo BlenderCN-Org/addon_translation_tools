@@ -12,6 +12,7 @@ def register():
         bpy.app.translations.register(__package__, translation_dict)
     else:
         bpy.bpy.app.translations.register(__name__, translation_dict)
+
 def unregister():
     if __package__:
         bpy.app.translations.unregister(__package__)
@@ -20,7 +21,7 @@ def unregister():
 """
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="make translation module from translation.csv")
+    parser = argparse.ArgumentParser(description="make translation module from translated.txt")
     parser.add_argument("--input", "-i", action="append", required=True, type=str,
                         help="Specify the input translated csv paths.")
     parser.add_argument("--output", "-o", default="translation.py", type=str,
@@ -32,7 +33,7 @@ if __name__ == "__main__":
         basename = os.path.basename(filename)
         addon_name, locale, ext = basename.split(".")
         if not (addon_name and locale and ext):
-            sys.stderr.write("The filename must be `{addon_name}.{locale}.csv` format\n")
+            sys.stderr.write("The filename must be `{addon_name}.{locale}.txt` format\n")
             sys.exit(-1)
         with open(filename, "r") as f:
             translation_dict += r'    "{}": '.format(locale) + "{\n"
