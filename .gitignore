@@ -5,3 +5,5 @@
 __pycache__
 *translation.py
 !examples/*.py
+!examples/*.txt
+

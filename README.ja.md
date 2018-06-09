@@ -23,7 +23,7 @@ $ blender -b -P make_translation_file.py -- -i <addon dir>
 `make_translation_module.py`は、翻訳をBlenderに登録するためのPythonモジュールを生成します。出力例を見てください[examples/blender_mmd_lip_tools_translation.py](examples/blender_mmd_lip_tools_translation.py).
 
 ```shell
-$ python make_translation_module.py -i <translated file> -o <output module filename>
+$ blender -b -P make_translation_module.py -- -i <translated file> -o <output module filename>
 ```
 ファイル名は、`{addon_name}.{locale}.txt`の形式でなければならないことに注意してください。
 

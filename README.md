@@ -28,7 +28,7 @@ See outpu example [examples/blender_mmd_lip_tools.ja_JP.txt](examples/blender_mm
 `make_translation_module.py` generates the python module for registering translations to Blender from the translated file. See output example [examples/blender_mmd_lip_tools_translation.py](examples/blender_mmd_lip_tools_translation.py).
 
 ```shell
-$ python make_translation_module.py -i <translated file> -o <output module filename>
+$ blender -b -P make_translation_module.py -- -i <translated file> -o <output module filename>
 ```
 Note that the input filename must be formatted as `{addon_name}.{locale}.txt`. 
 

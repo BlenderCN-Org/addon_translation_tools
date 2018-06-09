@@ -21,12 +21,18 @@ def unregister():
 """
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="make translation module from translated.txt")
+    my_argv = sys.argv[sys.argv.index("--") + 1:]
+    parser = argparse.ArgumentParser(prog="blender -b -P make_translation_module.py -- ",description="make translation module from translated.txt")
     parser.add_argument("--input", "-i", action="append", required=True, type=str,
                         help="Specify the input translated csv paths.")
-    parser.add_argument("--output", "-o", default="translation.py", type=str,
+    parser.add_argument("--output", "-o", default=None, type=str,
                         help="Specify the Output file path.")
-    args = parser.parse_args()
+    args = parser.parse_args(my_argv)
+
+    if args.output is None:
+        basename = os.path.basename(args.input[0])
+        addon_name, locale, ext = basename.split(".")
+        args.output = "{}_translation.py".format(addon_name)
     
     translation_dict = "{\n"
     for filename in args.input:
