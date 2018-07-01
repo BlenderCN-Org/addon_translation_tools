@@ -60,13 +60,34 @@ def build_locale_items():
     return tuple(sorted(items, key=lambda x: x[0].upper()))
 
 class PanelProperty(PropertyGroup):
+    def update_addon(self, context):
+        if self.addon:
+            for mod in addon_utils.modules():
+                if mod.__file__ == self.addon:
+                    self.text_ctxt = mod.__name__
+                    break
+        return None
     category = EnumProperty(name="Category", items=build_category_items_callback)
-    addon = EnumProperty(name="Addon", items=build_addon_items_callback)
+    addon = EnumProperty(name="Addon", items=build_addon_items_callback, update=update_addon)
     locale = EnumProperty(name="Locale", items=build_locale_items())
+    use_text_ctxt = BoolProperty(name="Use text_ctxt", default=False)
+    text_ctxt = StringProperty(name="text_ctxt",
+                                   description="Override automatic translation context of the given text")
+    updatable = BoolProperty(name="Updatable Flag", default=True)
 
 def update_translation_callback(self, context):
-    if context.space_data.text.translation_tools.updatable:
+    panel_prop = get_panel_prop(context)
+    if panel_prop.updatable:
+        translation_prop = context.space_data.text.translation_tools
+        print("update_translation_callback")
+        if translation_prop.use_text_ctxt:
+            panel_prop.use_text_ctxt = True
+            panel_prop.text_ctxt = translation_prop.text_ctxt
+        else:
+            panel_prop.use_text_ctxt = False
+            panel_prop.text_ctxt = ""
         bpy.ops.translation_tools.generate_module()
+        bpy.ops.text.run_script()
 
 class ItemProperty(PropertyGroup):
     msgid = StringProperty(name="Label")
@@ -86,7 +107,10 @@ class TextTranslationProperty(PropertyGroup):
     error_items = CollectionProperty(type=ItemProperty, name="Error Items")
     items_active_index = IntProperty(name="Items Index")
     error_items_active_index = IntProperty(name="Error Items Index")
-    updatable = BoolProperty(name="Updatable Flag", default=True)
+    use_text_ctxt = BoolProperty(name="Use text_ctxt", default=False, update=update_translation_callback)
+    text_ctxt = StringProperty(name="text_ctxt",
+                                   description="Override automatic translation context of the given text",
+                                   update=update_translation_callback)
 
 class TemplateGeneratorPanel(Panel):
     bl_label = "Addon Translation Generator"
@@ -99,6 +123,10 @@ class TemplateGeneratorPanel(Panel):
         c.prop(props, 'category')
         c.prop(props, 'addon')
         c.prop(props, 'locale')
+        c.prop(props, 'use_text_ctxt')
+        if props.use_text_ctxt:
+            c.prop(props, 'text_ctxt')
+
         c = self.layout.column()
         c.operator(translation_tools_operator.TemplateGenerateOperator.bl_idname, "Generate")
 
@@ -130,6 +158,11 @@ class ItemPanel(Panel):
 
     def draw(self, context):
         prop = context.space_data.text.translation_tools
+        c = self.layout.column(align=True)
+        c.prop(prop, "use_text_ctxt")
+        if prop.use_text_ctxt:
+            c.prop(prop, "text_ctxt")
+
         c = self.layout.column()
         c.template_list("ItemUL", "",
                             prop, "items",

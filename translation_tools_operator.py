@@ -91,7 +91,7 @@ class BPYPropExtractor(ast.NodeVisitor):
         else:
             pass
 
-def set_translation_item(item, prop, input_dir, is_error):
+def set_translation_item(item, prop, text_ctxt, input_dir, is_error):
     item.msgid = prop.text
     item.function = prop.function_name
     item.keyword = prop.keyword
@@ -105,22 +105,28 @@ def set_translation_item(item, prop, input_dir, is_error):
         item.ctx = "Operator"
     else:
         item.ctx = "*"
+
     if not is_error:
-        msgstr = bpy.app.translations.pgettext(item.msgid, item.ctx)
+        if text_ctxt:
+            msgstr = bpy.app.translations.pgettext(item.msgid, text_ctxt)
+            if msgstr == item.msgid:
+                msgstr = bpy.app.translations.pgettext(item.msgid, item.ctx)
+        else:
+            msgstr = bpy.app.translations.pgettext(item.msgid, item.ctx)
         if msgstr == item.msgid:
             item.msgstr = ""
         else:
             item.msgstr = msgstr
 
-def build_tralsnation_items(mod, locale, bpy_text):
-    use_international_fonts = bpy.context.user_preferences.system.use_international_fonts
-    bpy.context.user_preferences.system.use_international_fonts = True
+def build_tralsnation_items(mod, locale, bpy_text, text_ctxt):
+    use_international_fonts_backup = bpy.context.user_preferences.system.use_international_fonts
     locale_backup = bpy.context.user_preferences.system.language
-    bpy.context.user_preferences.system.language = locale
     try:
-        bpy_text.translation_tools.updatable = False
-        bpy_text.translation_tools.items.clear()
-        bpy_text.translation_tools.error_items.clear()
+        bpy.context.user_preferences.system.use_international_fonts = True
+        bpy.context.user_preferences.system.language = locale
+        translation_prop = bpy_text.translation_tools
+        translation_prop.items.clear()
+        translation_prop.error_items.clear()
 
         basename = os.path.basename(mod.__file__)
         if basename == "__init__.py":
@@ -131,7 +137,7 @@ def build_tralsnation_items(mod, locale, bpy_text):
             scripts = [mod.__file__]
         found = set()
         for filename in scripts:
-            with open(filename, "r") as ifp:
+            with open(filename, "r", encoding="utf_8_sig") as ifp:
                 root = ast.parse(ifp.read())
                 hook = BPYPropExtractor()
                 hook.visit(root)
@@ -141,16 +147,15 @@ def build_tralsnation_items(mod, locale, bpy_text):
                         continue
                     found.add(prop.text)
                     prop.filename = filename
-                    item = bpy_text.translation_tools.items.add()
-                    set_translation_item(item, prop, input_dir=input_dir, is_error=False)
+                    item = translation_prop.items.add()
+                    set_translation_item(item, prop, text_ctxt, input_dir=input_dir, is_error=False)
                 for err in errors:
                     prop.filename = filename                
-                    item = bpy_text.translation_tools.error_items.add()
-                    set_translation_item(item, prop, input_dir=input_dir, is_error=True)
+                    item = translation_prop.error_items.add()
+                    set_translation_item(item, prop, text_ctxt, input_dir=input_dir, is_error=True)
     finally:
         bpy.context.user_preferences.system.language = locale_backup
-        bpy.context.user_preferences.system.use_international_fonts = use_international_fonts
-        bpy_text.translation_tools.updatable = True
+        bpy.context.user_preferences.system.use_international_fonts = use_international_fonts_backup
 
 class TemplateGenerateOperator(Operator):
     bl_idname = "addon_translation_tools.generate_template"
@@ -187,14 +192,24 @@ class TemplateGenerateOperator(Operator):
             text = bpy.data.texts[name]
         else:
             text = bpy.data.texts.new(name=name)
-        text.use_fake_user = True
-        text.translation_tools.addon_path = props.addon
-        text.translation_tools.locale = props.locale
-        build_tralsnation_items(mod, locale, text)
-        context.space_data.text = text
-
+        try:
+            props.updatable = False
+            text.use_fake_user = True
+            text.translation_tools.addon_path = props.addon
+            text.translation_tools.locale = props.locale
+            text_ctxt = props.text_ctxt if props.use_text_ctxt else None
+            build_tralsnation_items(mod, locale, text, text_ctxt)
+            if text_ctxt:
+                text.translation_tools.text_ctxt = text_ctxt
+                text.translation_tools.use_text_ctxt = True
+            else:
+                text.translation_tools.text_ctxt = mod.__name__
+                text.translation_tools.use_text_ctxt = False
+            context.space_data.text = text
+            bpy.ops.translation_tools.generate_module()
+        finally:
+            props.updatable = True
         return {"FINISHED"}
-
 
 MODULE_TEMPLATE = """# -*- coding: utf-8 -*-
 # This code is generated by addon_translation_tools.
@@ -246,9 +261,12 @@ class ModuleGenerateOperator(Operator):
                 continue
             msgid = item.msgid.replace(r'"', r'\"')
             msgstr = item.msgstr.replace(r'"', r'\"')
+            if prop.use_text_ctxt:
+                ctx = prop.text_ctxt
+            else:
+                ctx = item.ctx
             if msgid and msgstr:
-                translation_dict += r'        ("{}", "{}"): "{}",'.format(
-                    item.ctx, msgid, msgstr) + "\n"
+                translation_dict += r'        ("{}", "{}"): "{}",'.format(ctx, msgid, msgstr) + "\n"
 
         translation_dict += "    }\n"
         translation_dict += "}"
