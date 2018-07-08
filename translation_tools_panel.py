@@ -73,7 +73,8 @@ class PanelProperty(PropertyGroup):
     use_text_ctxt = BoolProperty(name="Use text_ctxt", default=False)
     text_ctxt = StringProperty(name="text_ctxt",
                                    description="Override automatic translation context of the given text")
-    updatable = BoolProperty(name="Updatable Flag", default=True)
+    updatable = BoolProperty(name="Updatable", default=True)
+    live_update = BoolProperty(name="Live Update", default=True)
 
 def update_translation_callback(self, context):
     panel_prop = get_panel_prop(context)
@@ -86,8 +87,8 @@ def update_translation_callback(self, context):
         else:
             panel_prop.use_text_ctxt = False
             panel_prop.text_ctxt = ""
-        bpy.ops.translation_tools.generate_module()
-        bpy.ops.text.run_script()
+        if panel_prop.live_update:
+            bpy.ops.translation_tools.generate_module()
 
 class ItemProperty(PropertyGroup):
     msgid = StringProperty(name="Label")
@@ -157,6 +158,7 @@ class ItemPanel(Panel):
             yield l[i:i + n]
 
     def draw(self, context):
+        panel_prop = get_panel_prop(context)
         prop = context.space_data.text.translation_tools
         c = self.layout.column(align=True)
         c.prop(prop, "use_text_ctxt")
@@ -181,7 +183,11 @@ class ItemPanel(Panel):
             chunks = list(self.__chunked(str(item.msgid).split(" "), 5))
             for s in chunks:
                 c.label(text=" ".join(s), translate=False)
-
+        c = self.layout.column()
+        c.prop(panel_prop, "live_update")
+        if not panel_prop.live_update:
+            c.operator(translation_tools_operator.ModuleGenerateOperator.bl_idname, "Update Module")
+            
     @classmethod
     def poll(cls, context):
         return (context.space_data.text and

@@ -275,5 +275,6 @@ class ModuleGenerateOperator(Operator):
 
         context.space_data.show_line_numbers = True
         context.space_data.show_syntax_highlight = True
+        bpy.ops.text.run_script()
         
         return {"FINISHED"}
