@@ -10,7 +10,7 @@ except:
     from . import translation_tools_operator
 
 def get_panel_prop(context):
-    return context.user_preferences.addons[__package__].preferences.panel_prop
+    return context.scene.translation_tools
 
 g_category_cache = None
 g_addon_cache = None
@@ -20,7 +20,7 @@ def build_category_items_callback(self, context):
     global g_category_cache
     if g_category_cache is None:
         categories = set()
-        for mod in addon_utils.modules():
+        for mod in addon_utils.modules(refresh=False):
             bl_info = addon_utils.module_bl_info(mod)
             if bl_info["category"]:
                 categories.add(bl_info["category"])
@@ -42,7 +42,7 @@ def build_addon_items_callback(self, context):
             g_addon_cached_category is None or
             g_addon_cached_category != props.category):
         items = []
-        for mod in addon_utils.modules():
+        for mod in addon_utils.modules(refresh=False):
             bl_info = addon_utils.module_bl_info(mod)
             if (not props.category or
                     props.category == "All" or
@@ -62,22 +62,22 @@ def build_locale_items():
 class PanelProperty(PropertyGroup):
     def update_addon(self, context):
         if self.addon:
-            for mod in addon_utils.modules():
+            for mod in addon_utils.modules(refresh=False):
                 if mod.__file__ == self.addon:
                     self.text_ctxt = mod.__name__
                     break
         return None
     category = EnumProperty(name="Category", items=build_category_items_callback)
     addon = EnumProperty(name="Addon", items=build_addon_items_callback, update=update_addon)
-    locale = EnumProperty(name="Locale", items=build_locale_items())
+    locale = EnumProperty(name="Language", items=build_locale_items())
     use_text_ctxt = BoolProperty(name="Use text_ctxt", default=False)
     text_ctxt = StringProperty(name="text_ctxt",
                                    description="Override automatic translation context of the given text")
     updatable = BoolProperty(name="Updatable", default=True)
-    live_update = BoolProperty(name="Live Update", default=True)
 
 def update_translation_callback(self, context):
     panel_prop = get_panel_prop(context)
+    text_obj = context.space_data.text
     if panel_prop.updatable:
         translation_prop = context.space_data.text.translation_tools
         print("update_translation_callback")
@@ -87,7 +87,7 @@ def update_translation_callback(self, context):
         else:
             panel_prop.use_text_ctxt = False
             panel_prop.text_ctxt = ""
-        if panel_prop.live_update:
+        if translation_prop.live_edit:
             bpy.ops.translation_tools.generate_module()
 
 class ItemProperty(PropertyGroup):
@@ -103,16 +103,22 @@ class ItemProperty(PropertyGroup):
 
 class TextTranslationProperty(PropertyGroup):
     addon_path = StringProperty(name="Addon Path")
-    locale = StringProperty(name="Locale")
+    addon_name = StringProperty(name="Addon Name")
+    locale = StringProperty(name="Language")
     items = CollectionProperty(type=ItemProperty, name="Items")
     error_items = CollectionProperty(type=ItemProperty, name="Error Items")
     items_active_index = IntProperty(name="Items Index")
     error_items_active_index = IntProperty(name="Error Items Index")
-    use_text_ctxt = BoolProperty(name="Use text_ctxt", default=False, update=update_translation_callback)
+    live_edit = BoolProperty(name="Live Edit", default=True)
+    mode = EnumProperty(name="Mode", items=(("Standalone", "Standalone",""), ("Module", "Module", "")),
+                        update=update_translation_callback)
+    use_text_ctxt = BoolProperty(name="Use text_ctxt", default=False,
+                                 update=update_translation_callback)
     text_ctxt = StringProperty(name="text_ctxt",
                                    description="Override automatic translation context of the given text",
                                    update=update_translation_callback)
 
+g_first_draw = True
 class TemplateGeneratorPanel(Panel):
     bl_label = "Addon Translation Generator"
     bl_space_type = "TEXT_EDITOR"
@@ -144,8 +150,22 @@ class ItemUL(UIList):
         c.label(text=item.msgid, translate=False)
         s.prop(item, "msgstr", text="")
 
-    def draw_filter(self, context, layout):
-        pass
+    def filter_items(self, context, data, propname):
+        helper_funcs = bpy.types.UI_UL_list
+        items = getattr(data, propname)
+        
+        flt_flags = []
+        flt_neworder = []
+        if self.filter_name:
+            flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, items, "msgid")
+        if not flt_flags:
+            flt_flags = [self.bitflag_filter_item] * len(items)
+        if self.use_filter_sort_alpha:
+            flt_neworder = helper_funcs.sort_items_by_name(items, "msgid")
+        else:
+            _sort = [(i, (item.file_rel_path, item.lineno, item.keyword)) for i, item in enumerate(items)]
+            flt_neworder = helper_funcs.sort_items_helper(_sort, lambda x: x[1])
+        return flt_flags, flt_neworder
 
 class ItemPanel(Panel):
     bl_label = "Addon Translation Items"
@@ -160,11 +180,6 @@ class ItemPanel(Panel):
     def draw(self, context):
         panel_prop = get_panel_prop(context)
         prop = context.space_data.text.translation_tools
-        c = self.layout.column(align=True)
-        c.prop(prop, "use_text_ctxt")
-        if prop.use_text_ctxt:
-            c.prop(prop, "text_ctxt")
-
         c = self.layout.column()
         c.template_list("ItemUL", "",
                             prop, "items",
@@ -184,16 +199,20 @@ class ItemPanel(Panel):
             for s in chunks:
                 c.label(text=" ".join(s), translate=False)
         c = self.layout.column()
-        c.prop(panel_prop, "live_update")
-        if not panel_prop.live_update:
+        c.prop(prop, "live_edit")
+        c.prop(prop, "use_text_ctxt")
+        if prop.use_text_ctxt:
+            c.prop(prop, "text_ctxt")
+        c.prop(prop, "mode", expand=True)
+        if not prop.live_edit:
             c.operator(translation_tools_operator.ModuleGenerateOperator.bl_idname, "Update Module")
-            
+
     @classmethod
     def poll(cls, context):
         return (context.space_data.text and
                     context.space_data.text.translation_tools and
                     len(context.space_data.text.translation_tools.items) > 0)
-
+"""TODO
 class ErrorItemPanel(Panel):
     bl_label = "Addon Translation Errors"
     bl_space_type = "TEXT_EDITOR"
@@ -207,4 +226,4 @@ class ErrorItemPanel(Panel):
         return (context.space_data.text and
                     context.space_data.text.translation_tools and
                     len(context.space_data.text.translation_tools.error_items) > 0)
-
+"""

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import bpy
 from bpy.props import *
-from bpy.types import AddonPreferences
 import importlib
 
 try:
@@ -19,17 +18,13 @@ bl_info = {
     "location": "Text Editor > Tools Panel > Addon Translation .+",
 }
 
-class AddonTranslationTools(AddonPreferences):
-    bl_idname = __package__
-    panel_prop = PointerProperty(type=translation_tools_panel.PanelProperty)
-    def draw(self, context):
-        pass
-
 def register():
     bpy.utils.register_module(__package__)
     bpy.types.Text.translation_tools = PointerProperty(type=translation_tools_panel.TextTranslationProperty)
+    bpy.types.Scene.translation_tools = PointerProperty(type=translation_tools_panel.PanelProperty)
 
 def unregister():
+    del bpy.types.Scene.translation_tools
     del bpy.types.Text.translation_tools
     bpy.utils.unregister_module(__package__)
 
