@@ -117,7 +117,12 @@ class TextTranslationProperty(PropertyGroup):
     text_ctxt = StringProperty(name="text_ctxt",
                                    description="Override automatic translation context of the given text",
                                    update=update_translation_callback)
-
+    # bl_info
+    bl_info_name = StringProperty(name="Name", update=update_translation_callback)
+    bl_info_version = IntVectorProperty(name="Version", size=3, min=0, default=(1,0,0), update=update_translation_callback)
+    bl_info_author = StringProperty(name="Author", update=update_translation_callback)
+    bl_info_tracker_url = StringProperty(name="Tracker URL", update=update_translation_callback)
+    
 g_first_draw = True
 class TemplateGeneratorPanel(Panel):
     bl_label = "Addon Translation Generator"
@@ -203,9 +208,22 @@ class ItemPanel(Panel):
         c.prop(prop, "use_text_ctxt")
         if prop.use_text_ctxt:
             c.prop(prop, "text_ctxt")
+        
+        c.label(text="Output")
+        box = self.layout.box()
+        c = box.column()
         c.prop(prop, "mode", expand=True)
+        if prop.mode == "Standalone":
+            c = box.column(align=True)
+            c.label(text="bl_info")
+            c.row(align=True).prop(prop, "bl_info_version")
+            c.row().prop(prop, "bl_info_name")
+            c.row().prop(prop, "bl_info_author")
+            c.row().prop(prop, "bl_info_tracker_url")
+        c = box.column()
         if not prop.live_edit:
-            c.operator(translation_tools_operator.ModuleGenerateOperator.bl_idname, "Update Module")
+            c.operator(translation_tools_operator.ModuleGenerateOperator.bl_idname, "Update")
+        c.operator("text.save_as", "Save As")
 
     @classmethod
     def poll(cls, context):
