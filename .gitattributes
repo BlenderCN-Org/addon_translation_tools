@@ -1,0 +1,5 @@
+.*	export-ignore
+figure/	export-ignore
+README.md	export-ignore
+README.ja.md	export-ignore
+*.sh		export-ignore

@@ -1,6 +1,6 @@
 # addon_translation_tools
 
-[Download](https://github.com/nagadomi/addon_translation_tools/archive/master.zip)
+[Download](https://github.com/nagadomi/addon_translation_tools/releases)
 
 `adoon_translation_tools`はBlenderアドオンを翻訳/国際化するためのアドオンです。
 アドオンのソースコードから構文解析により翻訳可能な文字列を抽出し、Blender上で翻訳できます。

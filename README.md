@@ -1,6 +1,6 @@
 # addon_translation_tools
 
-[Download](https://github.com/nagadomi/addon_translation_tools/archive/master.zip)
+[Download](https://github.com/nagadomi/addon_translation_tools/releases)
 
 `addon_translation_tools` is a blender addon for translating/i18n Blender Addons.
 
