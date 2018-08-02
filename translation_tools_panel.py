@@ -87,7 +87,7 @@ def update_translation_callback(self, context):
         else:
             panel_prop.use_text_ctxt = False
             panel_prop.text_ctxt = ""
-        if translation_prop.live_edit:
+        if translation_prop.use_live_edit:
             bpy.ops.translation_tools.generate_module()
 
 class ItemProperty(PropertyGroup):
@@ -109,7 +109,7 @@ class TextTranslationProperty(PropertyGroup):
     error_items = CollectionProperty(type=ItemProperty, name="Error Items")
     items_active_index = IntProperty(name="Items Index")
     error_items_active_index = IntProperty(name="Error Items Index")
-    live_edit = BoolProperty(name="Live Edit", default=True)
+    use_live_edit = BoolProperty(name="Live Edit", default=True)
     mode = EnumProperty(name="Mode", items=(("Standalone", "Standalone",""), ("Module", "Module", "")),
                         update=update_translation_callback)
     use_text_ctxt = BoolProperty(name="Use text_ctxt", default=False,
@@ -173,7 +173,7 @@ class ItemUL(UIList):
         return flt_flags, flt_neworder
 
 class ItemPanel(Panel):
-    bl_label = "Addon Translation Items"
+    bl_label = "Addon Translation Editor"
     bl_space_type = "TEXT_EDITOR"
     bl_region_type = "UI"
 
@@ -204,7 +204,7 @@ class ItemPanel(Panel):
             for s in chunks:
                 c.label(text=" ".join(s), translate=False)
         c = self.layout.column()
-        c.prop(prop, "live_edit")
+        c.prop(prop, "use_live_edit")
         c.prop(prop, "use_text_ctxt")
         if prop.use_text_ctxt:
             c.prop(prop, "text_ctxt")
@@ -221,7 +221,7 @@ class ItemPanel(Panel):
             c.row().prop(prop, "bl_info_author")
             c.row().prop(prop, "bl_info_tracker_url")
         c = box.column()
-        if not prop.live_edit:
+        if not prop.use_live_edit:
             c.operator(translation_tools_operator.ModuleGenerateOperator.bl_idname, "Update")
         c.operator("text.save_as", "Save As")
 

@@ -334,6 +334,11 @@ class ModuleGenerateOperator(Operator):
 
         context.space_data.show_line_numbers = True
         context.space_data.show_syntax_highlight = True
-        bpy.ops.text.run_script()
-        
+        ret = bpy.ops.text.move(type='FILE_TOP')
+        if "FINISHED" not in ret:
+            return ret
+        ret = bpy.ops.text.run_script()
+        if "FINISHED" not in ret:
+            return ret
+
         return {"FINISHED"}
