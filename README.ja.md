@@ -8,6 +8,8 @@
 
 `adoon_translation_tools`のパネルはテキストエディターにあります。
 
+![ui](figure/ui_ja.png)
+
 ### Addon Translation Generator
 
 Blenderアドオンのソースコードから翻訳対象を抽出し、編集できるようにします。
