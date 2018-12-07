@@ -140,7 +140,7 @@ class TemplateGeneratorPanel(Panel):
             c.prop(props, 'text_ctxt')
 
         c = self.layout.column()
-        c.operator(translation_tools_operator.TemplateGenerateOperator.bl_idname, "Generate")
+        c.operator(translation_tools_operator.TemplateGenerateOperator.bl_idname, text="Generate")
 
     @classmethod
     def poll(cls, context):
@@ -149,7 +149,7 @@ class TemplateGeneratorPanel(Panel):
 class ItemUL(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         row = layout.row(align=True)
-        s = row.split(percentage=0.5)
+        s = row.split()
         c = s.column()
         c.alignment = "RIGHT"
         c.label(text=item.msgid, translate=False)
@@ -222,8 +222,8 @@ class ItemPanel(Panel):
             c.row().prop(prop, "bl_info_tracker_url")
         c = box.column()
         if not prop.use_live_edit:
-            c.operator(translation_tools_operator.ModuleGenerateOperator.bl_idname, "Update")
-        c.operator("text.save_as", "Save As")
+            c.operator(translation_tools_operator.ModuleGenerateOperator.bl_idname, text="Update")
+        c.operator("text.save_as", text="Save As")
 
     @classmethod
     def poll(cls, context):
